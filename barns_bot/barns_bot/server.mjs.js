@@ -13,6 +13,22 @@ const __dirname = path.dirname(__filename);
 // -------- إعداد الخادم --------
 const app = express();
 app.use(express.json());
+
+// ✅ CORS هنا
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.use(express.static(__dirname)); // يقدم index.html / admin.html إن وُجدا
 
 if (!process.env.OPENAI_API_KEY) {
@@ -176,7 +192,7 @@ app.post("/ingest", upload.array("files", 100), async (req, res) => {
 // سؤال/جواب من نفس المتجر
 app.post("/ask", async (req, res) => {
   try {
-    const question = (req.body?.question || "").toString().trim();
+    const question = (req.body?.question || req.body?.prompt || req.body?.message || "").toString().trim();
     if (!question) return res.status(400).json({ ok: false, error: "No question" });
 
     const systemInstruction = `
@@ -196,7 +212,7 @@ app.post("/ask", async (req, res) => {
     });
 
     const answer = rsp.output_text ?? "لم أتمكن من استخراج النص من الرد.";
-    res.json({ ok: true, answer });
+    return res.json({ ok: true, reply: answer }); // ← هنا رجّع reply
   } catch (err) {
     console.error("Ask error:", err);
     res.status(500).json({
