@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barns Bot</title>
+<style>
+  :root{--bg:#0f0f12;--card:#16171b;--text:#e7e7ea;--muted:#9aa0a6}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,Segoe UI,Roboto}
+  .wrap{max-width:820px;margin:40px auto;padding:0 16px}
+  .title{font-size:28px;font-weight:700;text-align:center;margin-bottom:20px}
+  .chat{display:flex;flex-direction:column;gap:10px}
+  .msg{padding:12px 14px;border-radius:14px;max-width:80%;white-space:pre-wrap}
+  .user{align-self:flex-end;background:#304ffe;color:#fff}
+  .bot{align-self:flex-start;background:var(--card);border:1px solid #25262b}
+  .bar{display:flex;gap:8px;margin-top:16px}
+  .input{flex:1;padding:14px 16px;border-radius:999px;border:1px solid #2b2c31;background:var(--card);color:var(--text)}
+  .btn{padding:0 18px;border-radius:999px;border:0;background:#3a3b41;color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">What are you working on?</div>
+    <div id="chat" class="chat"></div>
+    <div class="bar">
+      <input id="q" class="input" placeholder="Ask about next month’s vacations…" />
+      <button id="send" class="btn">Send</button>
+    </div>
+  </div>
+<script>
+const chat=document.getElementById('chat');const q=document.getElementById('q');
+document.getElementById('send').onclick=send;q.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+function add(t,c){const d=document.createElement('div');d.className='msg '+c;d.textContent=t;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;}
+add("Hi! Ask me about employee vacations for next month.","bot");
+async function send(){
+  const text=q.value.trim(); if(!text) return;
+  add(text,'user'); q.value='';
+  try{
+    const r=await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:text})});
+    const j=await r.json(); add(j.answer||'No reply','bot');
+  }catch{ add('Server error','bot'); }
+}
+</script>
+</body>
+</html>
