@@ -201,18 +201,22 @@ app.post("/ask", async (req, res) => {
 - إن لم يوجد الجواب في الملفات، قل: "لا أجد ذلك في البيانات."
     `.trim();
 
-    const rsp = await client.responses.create({
-      model: "gpt-4o-mini",
-      input: [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: question },
-      ],
-      tools: [{ type: "file_search", vector_store_ids: [vectorStoreId] }],
-      // file_search: { max_num_results: 12 }, // اختياري
-    });
+// بدّل هذا الجزء داخل try في /ask
+const rsp = await client.responses.create({
+  model: "gpt-4o-mini",
+  input: [
+    { role: "system", content: systemInstruction },
+    { role: "user", content: question },
+  ],
 
-    const answer = rsp.output_text ?? "لم أتمكن من استخراج النص من الرد.";
-    return res.json({ ok: true, reply: answer }); // ← هنا رجّع reply
+  // ✅ الشكل الصحيح لربط الـ Vector Store
+  tools: [{ type: "file_search" }],
+  tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } },
+});
+
+const answer = rsp.output_text ?? "لم أتمكن من استخراج النص من الرد.";
+return res.json({ ok: true, reply: answer });
+
   } catch (err) {
     console.error("Ask error:", err);
     res.status(500).json({
