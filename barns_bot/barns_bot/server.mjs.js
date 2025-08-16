@@ -190,10 +190,16 @@ app.post("/ingest", upload.array("files", 100), async (req, res) => {
 });
 
 // سؤال/جواب من نفس المتجر
+// سؤال/جواب
 app.post("/ask", async (req, res) => {
   try {
-    const question = (req.body?.question || req.body?.prompt || req.body?.message || "").toString().trim();
-    if (!question) return res.status(400).json({ ok: false, error: "No question" });
+    const question = (req.body?.question || req.body?.prompt || req.body?.message || "")
+      .toString()
+      .trim();
+
+    if (!question) {
+      return res.status(400).json({ ok: false, error: "No question" });
+    }
 
     const systemInstruction = `
 - أجب فقط من الملفات المرفوعة في قاعدة المعرفة (لا تؤلف).
@@ -201,29 +207,38 @@ app.post("/ask", async (req, res) => {
 - إن لم يوجد الجواب في الملفات، قل: "لا أجد ذلك في البيانات."
     `.trim();
 
-// بدّل هذا الجزء داخل try في /ask
-const rsp = await client.responses.create({
-  model: "gpt-4o-mini",
-  input: [
-    { role: "system", content: systemInstruction },
-    { role: "user", content: question },
-  ],
+    let rsp;
 
-  // ✅ الشكل الصحيح لربط الـ Vector Store
-  tools: [{ type: "file_search" }],
-  tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } },
-});
+    // نحاول أولاً مع RAG (file_search + vector store)
+    try {
+      rsp = await client.responses.create({
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: question },
+        ],
+        tools: [{ type: "file_search" }],
+        tool_resources: { file_search: { vector_store_ids: [vectorStoreId] } }, // <-- المكان الصحيح
+      });
+    } catch (ragErr) {
+      // لو فشل RAG لأي سبب، نطيح لاستخدام رد عادي بدون أدوات
+      console.error("RAG failed:", ragErr?.response?.data || ragErr.message);
+      rsp = await client.responses.create({
+        model: "gpt-4o-mini",
+        input: [
+          { role: "system", content: "Answer briefly." },
+          { role: "user", content: question },
+        ],
+      });
+    }
 
-const answer = rsp.output_text ?? "لم أتمكن من استخراج النص من الرد.";
-return res.json({ ok: true, reply: answer });
-
+    const answer = rsp.output_text ?? "لم أتمكن من استخراج النص من الرد.";
+    return res.json({ ok: true, reply: answer }); // نُرجع reply
   } catch (err) {
-    console.error("Ask error:", err);
-    res.status(500).json({
-      ok: false,
-      error: err?.message || String(err),
-      detail: err?.response?.data || err?.stack || null,
-    });
+    console.error("Ask error:", err?.response?.data || err.stack || err.message);
+    return res
+      .status(500)
+      .json({ ok: false, error: err?.message || String(err), detail: err?.response?.data || null });
   }
 });
 
