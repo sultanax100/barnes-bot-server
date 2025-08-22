@@ -1,0 +1,9 @@
+{
+  "updated_at": "2025-08-17T10:00:00Z",
+  "items": [
+    { "rank": 1, "name": "Supervisor A", "sales": 120, "rate": 4.2, "branch": "Jeddah" },
+    { "rank": 2, "name": "Supervisor B", "sales": 115, "rate": 4.1, "branch": "Riyadh" },
+    { "rank": 3, "name": "Supervisor C", "sales": 103, "rate": 3.9, "branch": "Makkah" },
+    { "rank": 4, "name": "Supervisor D", "sales": 97,  "rate": 3.8, "branch": "Dammam" }
+  ]
+}
